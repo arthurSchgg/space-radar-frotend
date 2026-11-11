@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050814">
+  <meta name="description" content="Explore aproximações de asteroides da Terra em um radar 3D interativo e ilustrativo.">
+  <title>Space Radar · Asteroides próximos da Terra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <script src="./js/config.js" defer></script>
+  <script src="./js/data.js" defer></script>
+  <script src="./js/radar.js" defer></script>
+  <script src="./js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Pular para os controles</a>
+  <div class="space">
+    <canvas id="scene" aria-label="Cena 3D artística: a Terra está no centro, com asteroides ilustrativos ao redor. Arraste para girar e use a lista acessível para selecionar." role="img"></canvas>
+    <div class="space-noise" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="logo" href="#main" aria-label="Space Radar, início">
+      <span class="logo-icon" aria-hidden="true">✳</span>
+      <span class="logo-copy"><strong>SPACE<span>RADAR</span></strong><small>NEAR-EARTH OBSERVATORY</small></span>
+    </a>
+    <div class="topbar-center" aria-hidden="true"><span class="dashline"></span> EARTH OBSERVATION SYSTEM <span class="dashline"></span></div>
+    <div class="top-actions">
+      <span class="status" id="status" role="status"><i></i><span id="statusText">Carregando cena…</span></span>
+      <a class="source-link" href="https://api.nasa.gov/" target="_blank" rel="noopener noreferrer">NASA NEO DATA <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main class="overlay" id="main">
+    <section class="intro" aria-labelledby="title">
+      <div class="eyebrow"><span class="cross">✧</span> EXPLORAÇÃO ESPACIAL <span class="hairline"></span> 001</div>
+      <h1 id="title">O espaço está<br><em>em movimento.</em></h1>
+      <p>Acompanhe aproximações de asteroides da Terra em uma experiência visual imersiva.</p>
+      <div class="data-mode" id="modeBadge"><span class="mode-dot"></span><strong id="modeTitle">DEMONSTRAÇÃO</strong><span id="modeDescription">Objetos fictícios</span></div>
+    </section>
+
+    <details class="panel control-panel" id="controls" open>
+      <summary><span class="panel-index">01 /</span> CONTROLES DE RADAR <span class="summary-icon" aria-hidden="true">⌄</span></summary>
+      <div class="control-inner">
+        <fieldset class="segmented">
+          <legend>CLASSIFICAÇÃO</legend>
+          <button id="allFilter" type="button" class="segment is-active" aria-pressed="true">Todos</button>
+          <button id="hazardFilter" type="button" class="segment" aria-pressed="false">Perigosos</button>
+        </fieldset>
+        <div class="date-grid">
+          <label class="control-label">DE <input id="startDate" type="date"></label>
+          <label class="control-label">ATÉ <input id="endDate" type="date"></label>
+        </div>
+        <label class="control-label">DISTÂNCIA MÁXIMA
+          <select id="maxDistance">
+            <option value="">Qualquer distância</option>
+            <option value="384400">1 distância lunar</option>
+            <option value="1500000">1,5 milhão de km</option>
+            <option value="5000000">5 milhões de km</option>
+            <option value="10000000">10 milhões de km</option>
+            <option value="50000000">50 milhões de km</option>
+          </select>
+        </label>
+        <button class="apply-button" type="button" id="applyFilters">APLICAR FILTROS <span aria-hidden="true">↗</span></button>
+
+        <div class="control-separator"></div>
+        <div class="slider-title"><label for="speed">MOVIMENTO ILUSTRATIVO</label><output id="speedValue" for="speed">1.0×</output></div>
+        <input id="speed" type="range" min="0" max="3" step="0.1" value="1">
+        <div class="toggle"><label for="sweep">Varredura do radar</label><input id="sweep" type="checkbox" checked></div>
+        <div class="toggle"><label for="galaxy">Via Láctea artística</label><input id="galaxy" type="checkbox" checked></div>
+        <div class="toggle"><label for="autoRotate">Rotação suave de câmera</label><input id="autoRotate" type="checkbox" checked></div>
+
+        <div class="control-separator"></div>
+        <div class="mode-buttons">
+          <button id="demoButton" type="button" class="text-button">Usar demonstração</button>
+          <button id="apiButton" type="button" class="text-button" hidden>Voltar para API</button>
+        </div>
+        <p class="small-note">O movimento e a direção dos objetos são cenográficos, não são órbitas reais.</p>
+      </div>
+    </details>
+
+    <aside class="panel objects-panel" aria-labelledby="objectsTitle">
+      <div class="objects-heading">
+        <div class="objects-heading-label"><span class="panel-index">02 /</span> CATÁLOGO DE OBJETOS</div>
+        <div class="objects-title-line"><h2 id="objectsTitle">Aproximações <span id="totalObjects">00</span></h2><span class="activity-dot" aria-hidden="true"></span></div>
+        <label class="search-field"><span aria-hidden="true">⌕</span><input id="search" type="search" autocomplete="off" placeholder="Buscar nesta página..." aria-label="Buscar objeto pelo nome ou ID na página atual"></label>
+        <div class="list-legend"><span><i class="dot normal"></i> Monitorados</span><span><i class="dot dangerous"></i> Potencialmente perigosos</span></div>
+      </div>
+      <ul id="objectList" class="object-list" aria-label="Objetos de aproximação"></ul>
+      <div class="objects-footer">
+        <span id="pageInfo">Página 1 de 1</span>
+        <div class="page-buttons"><button id="prevPage" type="button" aria-label="Página anterior" disabled>←</button><button id="nextPage" type="button" aria-label="Próxima página" disabled>→</button></div>
+      </div>
+    </aside>
+
+    <section class="panel detail-panel" id="detailPanel" aria-labelledby="detailTitle" hidden>
+      <div class="detail-top"><span><span class="panel-index">03 /</span> OBJECT ANALYSIS</span><button id="closeDetail" type="button" aria-label="Fechar detalhes">×</button></div>
+      <div class="detail-body">
+        <div class="object-type" id="detailRisk"></div>
+        <h2 id="detailTitle">Objeto</h2>
+        <p class="object-id" id="detailId"></p>
+        <dl class="details-grid" id="detailMetrics"></dl>
+        <p class="detail-note" id="detailNote"></p>
+      </div>
+    </section>
+
+    <div class="bottom-hud">
+      <span><i aria-hidden="true">◎</i> EARTH / REFERENCE POINT</span>
+      <span class="hud-divider">|</span>
+      <span id="hudCount">00 OBJECTS VISIBLE</span>
+      <span class="hud-divider">|</span>
+      <span>SCHEMATIC 3D VIEW</span>
+    </div>
+    <div class="interaction-hint" aria-hidden="true"><span>↔</span> ARRASTE PARA GIRAR <span class="hint-dot">·</span> ROLE PARA ZOOM <span class="hint-dot">·</span> CLIQUE NOS ASTEROIDES</div>
+    <div class="data-warning">VISUALIZAÇÃO ILUSTRATIVA • DISTÂNCIAS DE APROXIMAÇÃO, NÃO COORDENADAS OU ÓRBITAS REAIS</div>
+  </main>
+
+  <div id="tooltip" class="tooltip" role="status" hidden></div>
+  <div class="toast" id="toast" role="alert" hidden><span id="toastText"></span><button id="closeToast" type="button" aria-label="Fechar aviso">×</button></div>
+  <div id="fallback" class="webgl-fallback" hidden><h2>Radar 3D indisponível</h2><p id="fallbackText">Seu navegador não conseguiu iniciar o WebGL. Você ainda pode consultar os objetos pela lista.</p></div>
+</body>
+</html>
