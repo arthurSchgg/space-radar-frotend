@@ -198,3 +198,23 @@ As issues de homologação permanecem abertas até teste visual e integração d
 - É necessário verificar o funcionamento em dispositivos e navegadores reais antes do lançamento.
 
 Projeto educacional independente; não é um sistema oficial da NASA.
+
+
+## Ajustes de responsividade e refinamento 3D
+
+A partir da versão de polimento visual:
+- **Desktop acima de 900px:** radar ao centro, controles à esquerda, lista à direita.
+- **Tablet/celular até 900px:** navegação fixa com três abas **Radar · Objetos · Filtros**, separando as áreas de interação e evitando que os painéis escondam o radar.
+- Painel de detalhes em formato sobreposto com fechamento por botão e toque fora; botões e controles com áreas de toque maiores.
+- Suporte a safe areas do dispositivo, telas compactas desde 320px, orientação paisagem, rolagem própria dos painéis e foco visível.
+- Botão **Centralizar câmera**; gestos de pinça e arrasto no radar.
+- Terra com shader de atmosfera, globo texturizado, luz de preenchimento e fallback independente da internet.
+- Asteroides com relevo procedural determinístico, rotação cenográfica lenta, brilho e cor por classificação.
+- WebGL limitado a aproximadamente **30 FPS** e DPR reduzido em telas até 900px (60 FPS em desktop); não renderiza a cena quando a aba está oculta.
+- Eventos e dados científicos continuam vindo exclusivamente do backend configurado; a trajetória dos objetos permanece **esquemática**.
+
+### Testes automatizados de interface
+
+Além dos testes de dados em Node.js, o GitHub Actions executa um teste de navegação responsiva em **Chromium** nos tamanhos 320×568, 375×667, 390×844, 768×1024, 812×375, 1024×768 e 1440×900. Ele confere overflow horizontal, abas, seleção, detalhes, fechamento, reset da câmera e ausência de exceções JS.
+
+O workflow envia capturas mobile-375.png e desktop-1440.png como artefato responsive-preview para revisão visual. Mesmo com o teste automatizado, **a homologação física de Android/iOS e a integração em produção continuam pendentes**.
