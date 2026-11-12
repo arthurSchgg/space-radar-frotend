@@ -40,7 +40,7 @@ const configuration = [
   "/* Generated at build time with the PUBLIC backend URL; do not add secrets. */",
   "window.SPACE_RADAR_CONFIG = Object.freeze({",
   "  API_BASE_URL: " + JSON.stringify(apiUrl) + ",",
-  "  REQUEST_TIMEOUT_MS: 16000,",
+  "  REQUEST_TIMEOUT_MS: 90000,",
   "  PAGE_SIZE: 50",
   "});",
   ""
