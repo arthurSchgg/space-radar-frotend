@@ -91,7 +91,22 @@
         <div class="objects-heading-label"><span class="panel-index">02 /</span> CATÁLOGO DE OBJETOS</div>
         <div class="objects-title-line"><h2 id="objectsTitle">Aproximações <span id="totalObjects">00</span></h2><span class="activity-dot" aria-hidden="true"></span></div>
         <label class="search-field"><span aria-hidden="true">⌕</span><input id="search" type="search" autocomplete="off" placeholder="Buscar nesta página..." aria-label="Buscar objeto pelo nome ou ID na página atual"></label>
-        <div class="list-legend"><span><i class="dot normal"></i> Monitorados</span><span><i class="dot dangerous"></i> Potencialmente perigosos</span></div>
+        <div class="list-legend" aria-label="Legenda das classes">
+          <span><i class="risk-symbol safe" aria-hidden="true">◆</i> Não classificados como perigosos</span>
+          <span><i class="risk-symbol hazardous" aria-hidden="true">!</i> Potencialmente perigosos</span>
+        </div>
+        <div class="risk-overview" aria-label="Resumo da página carregada">
+          <span class="risk-overview-title">NESTA PÁGINA</span>
+          <div class="risk-overview-cards">
+            <div class="risk-overview-item safe">
+              <strong id="riskSafeCount">0</strong><span>NÃO PERIGOSOS</span>
+            </div>
+            <div class="risk-overview-item hazardous">
+              <strong id="riskHazCount">0</strong><span>POT. PERIGOSOS</span>
+            </div>
+          </div>
+          <div class="risk-meter" aria-hidden="true"><span id="riskMeterSafe"></span><span id="riskMeterHaz"></span></div>
+        </div>
       </div>
       <ul id="objectList" class="object-list" aria-label="Objetos de aproximação"></ul>
       <div class="objects-footer">
@@ -123,6 +138,10 @@
         <span aria-hidden="true">⚙</span> FILTROS
       </button>
     </nav>
+    <div class="radar-key" aria-label="Legenda do radar 3D">
+      <span class="radar-key-item"><i class="risk-symbol safe" aria-hidden="true">◆</i> <strong>TURQUESA</strong> Não perigosos</span>
+      <span class="radar-key-item"><i class="risk-symbol hazardous" aria-hidden="true">!</i> <strong>CORAL</strong> Pot. perigosos</span>
+    </div>
     <div class="bottom-hud">
       <span><i aria-hidden="true">◎</i> EARTH / REFERENCE POINT</span>
       <span class="hud-divider">|</span>
