@@ -48,7 +48,7 @@ async function ready(url) {
     for (const viewport of viewportSizes) {
       await page.setViewportSize(viewport);
       await page.goto("http://127.0.0.1:5500/?demo=1", { waitUntil: "domcontentloaded" });
-      await page.locator("#objectList button").first().waitFor({ timeout: 12000 });
+      await page.locator("#objectList button").first().waitFor({ state: "attached", timeout: 12000 });
       const compact = viewport.width <= 900;
       const layout = await page.evaluate(() => ({
         viewport: innerWidth,
