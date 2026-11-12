@@ -18,13 +18,15 @@ window.SpaceRadar3D = (() => {
   let sweepEnabled = true, galaxyEnabled = true, autoRotate = !reduceMotion;
   let speed = reduceMotion ? 0 : 1;
   let angle = .54, elevation = .34;
-  let cameraDistance = window.innerWidth <= 700 ? 63 : 48;
+  const idealDistance = () => window.innerWidth <= 900 ? 37 : 42;
+  let cameraDistance = idealDistance();
   let targetDistance = cameraDistance;
-  let lastFrameTime = 0, sweepTime = 0, galaxyRotation = .12;
+  let lastFrameTime = 0, sweepTime = 0;
+  let frameInterval = window.innerWidth <= 900 ? 1000 / 30 : 1000 / 60;
   let clockStarted = false;
   const activePointers = new Map();
   let moved = 0, pinchDistance = null, tipObject = null;
-  let diffuseRock, riskyRock, rockGeometry, hitGeometry, glowTexture;
+  let diffuseRock, riskyRock, hitGeometry, glowTexture;
 
   const clamp = (x, lower, upper) => Math.max(lower, Math.min(upper, x));
 
@@ -142,36 +144,75 @@ window.SpaceRadar3D = (() => {
     return new T.CanvasTexture(c);
   }
 
+  function atmosphereGlow() {
+    // Fresnel rim: strongest at the silhouette, subtle on the surface.
+    const shader = new T.ShaderMaterial({
+      uniforms: {
+        glowColor: { value: new T.Color("#58bfff") }
+      },
+      vertexShader: [
+        "varying vec3 vWorldNormal;",
+        "varying vec3 vWorldPosition;",
+        "void main(){",
+        "  vec4 worldPos = modelMatrix * vec4(position, 1.0);",
+        "  vWorldPosition = worldPos.xyz;",
+        "  vWorldNormal = normalize(mat3(modelMatrix) * normal);",
+        "  gl_Position = projectionMatrix * viewMatrix * worldPos;",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "uniform vec3 glowColor;",
+        "varying vec3 vWorldNormal;",
+        "varying vec3 vWorldPosition;",
+        "void main(){",
+        "  vec3 toCamera = normalize(cameraPosition - vWorldPosition);",
+        "  float rim = 1.0 - abs(dot(normalize(vWorldNormal), toCamera));",
+        "  float intensity = pow(clamp(rim, 0.0, 1.0), 3.0);",
+        "  gl_FragColor = vec4(glowColor * (0.9 + intensity), intensity * 0.72);",
+        "}"
+      ].join("\n"),
+      side: T.BackSide,
+      transparent: true,
+      depthWrite: false,
+      blending: T.AdditiveBlending
+    });
+    scene.add(new T.Mesh(new T.SphereGeometry(3.2, 64, 48), shader));
+  }
+
   function addEarth() {
+    const baseTexture = earthMap();
     earth = new T.Mesh(
-      new T.SphereGeometry(2.65, 64, 48),
+      new T.SphereGeometry(2.95, 64, 48),
       new T.MeshPhongMaterial({
-        map: earthMap(), color: 0xffffff, shininess: 10,
-        specular: new T.Color("#28567d")
+        map: baseTexture, color: 0xffffff,
+        shininess: 24, specular: new T.Color("#4b7999")
       })
     );
     earth.rotation.y = 2.35;
     scene.add(earth);
 
     clouds = new T.Mesh(
-      new T.SphereGeometry(2.698, 64, 48),
+      new T.SphereGeometry(3.015, 64, 48),
       new T.MeshPhongMaterial({
-        map: cloudMap(), transparent: true, opacity: .62,
-        depthWrite: false, shininess: 0
+        map: cloudMap(), transparent: true, opacity: .57,
+        depthWrite: false, shininess: 0, side: T.FrontSide
       })
     );
     clouds.rotation.y = 2.15;
     scene.add(clouds);
 
+    atmosphereGlow();
     const aura = new T.Sprite(new T.SpriteMaterial({
-      map: glowTexture, color: 0x2b8fe0, transparent: true,
-      opacity: .3, blending: T.AdditiveBlending, depthWrite: false
+      map: glowTexture, color: 0x2c9adf, transparent: true,
+      opacity: .22, blending: T.AdditiveBlending,
+      depthWrite: false
     }));
-    aura.scale.set(11.2, 11.2, 1);
-    aura.position.z = -.7;
+    aura.scale.set(13.5, 13.5, 1);
+    aura.position.z = -.8;
     scene.add(aura);
-    // Use a high-resolution public Three.js example texture when available.
-    // Procedural map above remains the fallback when the request fails.
+
+    // Public texture from Three.js examples; procedural fallback above stays visible
+    // if offline. This is a texture, not any NASA position or orbit data.
     new T.TextureLoader().load(
       "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
       texture => {
@@ -187,7 +228,7 @@ window.SpaceRadar3D = (() => {
 
   function makeGalaxy() {
     galaxy = new T.Group();
-    const count = window.innerWidth < 750 ? 3600 : 7600;
+    const count = window.innerWidth <= 900 ? 2400 : 6300;
     const points = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
     const color = new T.Color();
@@ -292,29 +333,54 @@ window.SpaceRadar3D = (() => {
     scene.add(selectedLine);
   }
 
+  function rockShape(seed) {
+    // Deterministic geometric irregularities make each object visibly rocky.
+    const geometry = new T.IcosahedronGeometry(1, 2);
+    const position = geometry.attributes.position;
+    const phase = seed * 0.0001;
+    for (let i = 0; i < position.count; i++) {
+      const x = position.getX(i), y = position.getY(i), z = position.getZ(i);
+      const large = Math.sin(x * 7.3 + phase) *
+        Math.cos(y * 5.9 - phase * 1.3) * Math.sin(z * 6.3 + phase * 0.8);
+      const small = Math.sin(x * 15.1 + phase) *
+        Math.cos(z * 13.7 + phase * .6);
+      const deformation = 1 + .14 * large + .065 * small;
+      position.setXYZ(i, x * deformation, y * deformation, z * deformation);
+    }
+    position.needsUpdate = true;
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
   function makeObject(item) {
     const risky = item.hazardous;
     const diameter = Number(item.maxDiameterM) || 50;
-    const scale = .2 + Math.sqrt(Math.min(diameter, 1000)) * .009;
-    const body = new T.Mesh(rockGeometry, risky ? riskyRock : diffuseRock);
-    body.scale.setScalar(scale);
-    // Stable, artificial positions: NOT real coordinates.
+    const scale = .24 + Math.sqrt(Math.min(diameter, 1000)) * .009;
     const h = hash(item.id);
+    const geometry = rockShape(h);
+    const rockMaterial = (risky ? riskyRock : diffuseRock).clone();
+    const tint = ((h % 100) / 100 - .5) * .12;
+    rockMaterial.color.offsetHSL(0, 0, tint);
+    const body = new T.Mesh(geometry, rockMaterial);
+    body.scale.setScalar(scale);
+    body.rotation.set((h % 300) / 120, ((h >>> 5) % 320) / 130, 0);
+
+    // Positions use deterministic, fictional angles: never NASA coordinates.
     const phase = (h % 10000) / 10000 * TAU;
     const lateral = (hash("tilt-" + item.id) % 1000) / 1000 - .5;
     const radius = lunarRadius(item.lunarDistance);
     const sprite = new T.Sprite(new T.SpriteMaterial({
-      map: glowTexture,
-      color: risky ? 0xff607d : 0x7bdfff,
-      transparent: true, opacity: .7, blending: T.AdditiveBlending,
+      map: glowTexture, color: risky ? 0xff7890 : 0x70daff,
+      transparent: true, opacity: .64, blending: T.AdditiveBlending,
       depthWrite: false
     }));
-    sprite.scale.set(1.4 + scale * 3, 1.4 + scale * 3, 1);
+    sprite.scale.set(2.1 + scale * 4, 2.1 + scale * 4, 1);
     body.add(sprite);
+
     const hit = new T.Mesh(hitGeometry, new T.MeshBasicMaterial({
       transparent: true, opacity: 0, depthWrite: false
     }));
-    hit.scale.setScalar(Math.max(1.35, scale * 3.4));
+    hit.scale.setScalar(Math.max(1.7, scale * 4.2));
     hit.userData.id = item.id;
     body.add(hit);
     scene.add(body);
@@ -322,17 +388,30 @@ window.SpaceRadar3D = (() => {
       item, body, sprite, hit, phase, radius,
       height: lateral * radius * .22,
       angularVelocity: .09 / Math.sqrt(radius),
-      scale
+      scale, spinX: .07 + (h % 11) * .004, spinY: .085 + (h % 7) * .008
     };
   }
 
   function setObjects(items) {
+    if (!scene) return;
+    const next = (items || []).slice(0, 100);
+    const same = next.length === objects.length && next.every((item, index) =>
+      item.id === objects[index].item.id &&
+      item.hazardous === objects[index].item.hazardous &&
+      item.lunarDistance === objects[index].item.lunarDistance
+    );
+    if (same) {
+      next.forEach((item, index) => { objects[index].item = item; });
+      return;
+    }
     objects.forEach(o => {
       scene.remove(o.body);
+      o.body.geometry.dispose();
+      o.body.material.dispose();
       o.hit.material.dispose();
       o.sprite.material.dispose();
     });
-    objects = (items || []).slice(0, 100).map(makeObject);
+    objects = next.map(makeObject);
     hitTargets = objects.map(o => o.hit);
     if (!objects.some(o => o.item.id === selectedId)) selectedId = null;
     for (const obj of objects) locate(obj);
@@ -390,10 +469,19 @@ window.SpaceRadar3D = (() => {
 
   function resize() {
     if (!renderer) return;
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = Math.max(1, window.innerWidth);
+    const h = Math.max(1, window.innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, w <= 900 ? 1.25 : 1.7));
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    frameInterval = w <= 900 ? 1000 / 30 : 1000 / 60;
+  }
+
+  function resetCamera() {
+    angle = .54;
+    elevation = .34;
+    targetDistance = idealDistance();
   }
 
   function setInteraction() {
@@ -456,8 +544,11 @@ window.SpaceRadar3D = (() => {
 
   function frame(now) {
     requestAnimationId = requestAnimationFrame(frame);
-    if (!clockStarted) { lastFrameTime = now; clockStarted = true; }
-    const dt = Math.min(.04, Math.max(0, (now - lastFrameTime) / 1000));
+    if (!clockStarted) { lastFrameTime = now - frameInterval; clockStarted = true; }
+    if (document.hidden) { lastFrameTime = now; return; }
+    const elapsed = now - lastFrameTime;
+    if (elapsed < frameInterval * .88) return;
+    const dt = Math.min(.05, Math.max(0, elapsed / 1000));
     lastFrameTime = now;
 
     if (!reduceMotion) {
@@ -478,11 +569,15 @@ window.SpaceRadar3D = (() => {
         o.phase += dt * speed * o.angularVelocity;
         locate(o);
       }
+      if (!reduceMotion && speed > 0) {
+        o.body.rotation.x += dt * speed * o.spinX;
+        o.body.rotation.y += dt * speed * o.spinY;
+      }
       const highlight = o.item.id === selectedId;
-      const wave = Math.sin(now * .0012 + (hash(o.item.id) % 100) / 20);
-      o.sprite.material.opacity = highlight ? .95 : .4 + .13 * wave;
-      const scale = (1.4 + o.scale * 3) * (highlight ? 1.6 : 1);
-      o.sprite.scale.set(scale, scale, 1);
+      const wave = reduceMotion ? 0 : Math.sin(now * .0012 + (hash(o.item.id) % 100) / 20);
+      o.sprite.material.opacity = highlight ? .88 : .37 + .11 * wave;
+      const haloScale = (2.1 + o.scale * 4) * (highlight ? 1.6 : 1);
+      o.sprite.scale.set(haloScale, haloScale, 1);
     }
 
     const current = objects.find(o => o.item.id === selectedId);
@@ -519,30 +614,40 @@ window.SpaceRadar3D = (() => {
       renderer = new T.WebGLRenderer({
         canvas, alpha: true, antialias: true, powerPreference: "high-performance"
       });
-      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.7));
+      renderer.setPixelRatio(Math.min(devicePixelRatio || 1, window.innerWidth <= 900 ? 1.25 : 1.7));
       renderer.outputEncoding = T.sRGBEncoding;
+      renderer.toneMapping = T.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.35;
       scene = new T.Scene();
       camera = new T.PerspectiveCamera(53, 1, .1, 1000);
       raycaster = new T.Raycaster();
       glowTexture = glowMap();
       diffuseRock = new T.MeshStandardMaterial({
-        color: 0x8dc7e9, emissive: 0x3a8bb1, emissiveIntensity: .42,
-        flatShading: true, roughness: .88
+        color: 0x8293a6, emissive: 0x1d526d, emissiveIntensity: .22,
+        flatShading: true, roughness: .96, metalness: .06
       });
       riskyRock = new T.MeshStandardMaterial({
-        color: 0xff8396, emissive: 0xc34865, emissiveIntensity: .5,
-        flatShading: true, roughness: .85
+        color: 0xbe7781, emissive: 0x6d2033, emissiveIntensity: .28,
+        flatShading: true, roughness: .94, metalness: .04
       });
-      rockGeometry = new T.IcosahedronGeometry(1, 1);
       hitGeometry = new T.SphereGeometry(1, 8, 6);
-      scene.add(new T.AmbientLight(0x91b4ff, .7));
-      const sun = new T.DirectionalLight(0xffffff, 1.8);
-      sun.position.set(6, 3, 8);
+      scene.add(new T.AmbientLight(0x9cb9e4, .4));
+      const sun = new T.DirectionalLight(0xfff2df, 2.1);
+      sun.position.set(8, 3, 9);
       scene.add(sun);
+      const fill = new T.DirectionalLight(0x468cff, .55);
+      fill.position.set(-6, -3, -5);
+      scene.add(fill);
       addEarth();
       makeGalaxy();
       addRangeGrid();
       setInteraction();
+      canvas.addEventListener("webglcontextlost", event => {
+        event.preventDefault();
+        fallback.hidden = false;
+        document.getElementById("fallbackText").textContent =
+          "A conexão com o motor gráfico foi perdida. Use a lista e os filtros enquanto a cena está indisponível.";
+      });
       resize();
       requestAnimationId = requestAnimationFrame(frame);
       return true;
@@ -566,7 +671,7 @@ window.SpaceRadar3D = (() => {
   function isReady() { return !!renderer; }
 
   return Object.freeze({
-    init, setObjects, select, setSpeed,
+    init, setObjects, select, setSpeed, resetCamera,
     setGalaxy, setSweep, setAutoRotate, isReady
   });
 })();
