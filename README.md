@@ -162,10 +162,10 @@ O repositório inclui `vercel.json` e `scripts/build.cjs`; **não precisa de fra
 2. Na Vercel, importe este repositório e selecione a branch **main**. Framework Preset: **Other**; Root Directory: `.`.
 3. Em **Settings → Environment Variables**, configure `SPACE_RADAR_API_URL` com a **origem HTTPS pública da API**, sem barra no final. **Não é segredo**: o navegador precisa conhecê-la.
 4. O `vercel.json` executa `node scripts/build.cjs` e publica `dist/`. O script valida a URL HTTPS e gera `dist/js/config.js`; **não altera o arquivo versionado `js/config.js`**.
-5. Configure no Render `RADAR_CORS_ORIGINS=https://seu-site.vercel.app` (e também domínio customizado, se houver), e reinicie a API.
+5. Configure no Render `RADAR_CORS_ORIGINS=https://space-radar-frotend.vercel.app` (e também domínio customizado, se houver), e reinicie a API.
 6. Faça o deploy e consulte o frontend; a API deve ter dados NASA importados para o período escolhido.
 
-**Se `SPACE_RADAR_API_URL` estiver ausente ou não for HTTPS, a build falha intencionalmente** para não publicar produção inadvertidamente em demonstração ou com `localhost`. Após cadastrar/alterar a variável na Vercel, realize um novo deploy.
+**Se `SPACE_RADAR_API_URL` estiver ausente, o build usa automaticamente a URL pública deste projeto: `https://space-radar-backend.onrender.com`.** Valores configurados na Vercel sobrescrevem esse padrão e precisam ser origens HTTPS válidas. O timeout da API é de 90 segundos para suportar o despertar da instância gratuita no Render. Após cadastrar/alterar a variável na Vercel, realize um novo deploy.
 
 Execução local simples **continua sem build**: sirva `index.html` com Live Server e configure `js/config.js` no seu computador somente durante os testes. `dist/` e `.history/` não são enviados ao Git.
 
