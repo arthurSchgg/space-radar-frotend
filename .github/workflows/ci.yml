@@ -1,0 +1,71 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  frontend:
+    name: Vanilla JS checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: |
+          node --check js/config.js
+          node --check js/data.js
+          node --check js/radar.js
+          node --check js/app.js
+      - name: Data tests
+        run: node --test tests/*.test.js
+      - name: Verify Vercel production bundle
+        env:
+          SPACE_RADAR_API_URL: https://space-radar-api.example.com
+        run: |
+          node scripts/build.cjs
+          node --check dist/js/config.js
+          test -s dist/index.html
+          test -s dist/css/style.css
+          test -s dist/js/radar.js
+          grep -q 'https://space-radar-api.example.com' dist/js/config.js
+          ! grep -q 'localhost' dist/js/config.js
+      - name: Static assets
+        run: |
+          test -s index.html
+          test -s css/style.css
+          test -s assets/favicon.svg
+          test -s README.md
+
+  browser:
+    name: Responsive browser smoke tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install headless test dependencies
+        run: npm install --no-save --no-package-lock playwright@1.58.2 three@0.128.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test responsive navigation, interaction and capture screenshots
+        run: |
+          mkdir -p artifacts
+          node tests/browser.cjs
+      - name: Upload review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-preview
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
