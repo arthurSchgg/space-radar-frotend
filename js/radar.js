@@ -352,6 +352,35 @@ window.SpaceRadar3D = (() => {
     return geometry;
   }
 
+  function dangerMarker() {
+    // Explicit warning symbol (ring + four ticks), readable without relying solely on color.
+    // It always faces the camera; it is NOT an orbit or collision indicator.
+    const group = new T.Group();
+    group.add(new T.Mesh(
+      new T.RingGeometry(1.13, 1.23, 48),
+      new T.MeshBasicMaterial({
+        color: 0xff7951, transparent: true, opacity: .78,
+        side: T.DoubleSide, depthWrite: false, depthTest: false
+      })
+    ));
+    const ticks = [];
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2;
+      ticks.push(
+        new T.Vector3(Math.cos(a) * 1.3, Math.sin(a) * 1.3, 0),
+        new T.Vector3(Math.cos(a) * 1.52, Math.sin(a) * 1.52, 0)
+      );
+    }
+    group.add(new T.LineSegments(
+      new T.BufferGeometry().setFromPoints(ticks),
+      new T.LineBasicMaterial({
+        color: 0xffbd7e, transparent: true, opacity: .82,
+        depthTest: false, depthWrite: false
+      })
+    ));
+    return group;
+  }
+
   function makeObject(item) {
     const risky = item.hazardous;
     const diameter = Number(item.maxDiameterM) || 50;
@@ -370,8 +399,8 @@ window.SpaceRadar3D = (() => {
     const lateral = (hash("tilt-" + item.id) % 1000) / 1000 - .5;
     const radius = lunarRadius(item.lunarDistance);
     const sprite = new T.Sprite(new T.SpriteMaterial({
-      map: glowTexture, color: risky ? 0xff7890 : 0x70daff,
-      transparent: true, opacity: .64, blending: T.AdditiveBlending,
+      map: glowTexture, color: risky ? 0xff6646 : 0x31f3d0,
+      transparent: true, opacity: risky ? .84 : .56, blending: T.AdditiveBlending,
       depthWrite: false
     }));
     sprite.scale.set(2.1 + scale * 4, 2.1 + scale * 4, 1);
@@ -384,8 +413,10 @@ window.SpaceRadar3D = (() => {
     hit.userData.id = item.id;
     body.add(hit);
     scene.add(body);
+    const alert = risky ? dangerMarker() : null;
+    if (alert) scene.add(alert);
     return {
-      item, body, sprite, hit, phase, radius,
+      item, body, sprite, hit, alert, phase, radius,
       height: lateral * radius * .22,
       angularVelocity: .09 / Math.sqrt(radius),
       scale, spinX: .07 + (h % 11) * .004, spinY: .085 + (h % 7) * .008
@@ -410,6 +441,13 @@ window.SpaceRadar3D = (() => {
       o.body.material.dispose();
       o.hit.material.dispose();
       o.sprite.material.dispose();
+      if (o.alert) {
+        scene.remove(o.alert);
+        o.alert.children.forEach(part => {
+          part.geometry.dispose();
+          part.material.dispose();
+        });
+      }
     });
     objects = next.map(makeObject);
     hitTargets = objects.map(o => o.hit);
@@ -424,6 +462,7 @@ window.SpaceRadar3D = (() => {
       obj.height,
       obj.radius * Math.sin(obj.phase)
     );
+    if (obj.alert) obj.alert.position.copy(obj.body.position);
   }
 
   function updateSelection() {
@@ -431,7 +470,7 @@ window.SpaceRadar3D = (() => {
     selectedRing.visible = !!selected;
     selectedLine.visible = !!selected;
     if (selected) {
-      selectedRing.material.color.set(selected.item.hazardous ? 0xff8091 : 0xffffff);
+      selectedRing.material.color.set(selected.item.hazardous ? 0xffb38a : 0x79ffe6);
       selectedRing.position.copy(selected.body.position);
     }
   }
@@ -461,7 +500,8 @@ window.SpaceRadar3D = (() => {
     if (!object) { tip.hidden = true; tipObject = null; return; }
     tipObject = object;
     tip.textContent = object.item.name + " · " +
-      object.item.lunarDistance.toFixed(1) + " DL";
+      (object.item.hazardous ? "⚠ Potencialmente perigoso" : "◆ Não perigoso") +
+      " · " + object.item.lunarDistance.toFixed(1) + " DL";
     tip.style.left = Math.min(window.innerWidth - 195, event.clientX + 14) + "px";
     tip.style.top = Math.max(12, event.clientY - 26) + "px";
     tip.hidden = false;
@@ -575,9 +615,16 @@ window.SpaceRadar3D = (() => {
       }
       const highlight = o.item.id === selectedId;
       const wave = reduceMotion ? 0 : Math.sin(now * .0012 + (hash(o.item.id) % 100) / 20);
-      o.sprite.material.opacity = highlight ? .88 : .37 + .11 * wave;
-      const haloScale = (2.1 + o.scale * 4) * (highlight ? 1.6 : 1);
+      o.sprite.material.opacity = highlight ? .92 :
+        o.item.hazardous ? .71 + .12 * wave : .42 + .08 * wave;
+      const haloScale = (2.1 + o.scale * 4) *
+        (highlight ? 1.65 : o.item.hazardous ? 1.36 : .98);
       o.sprite.scale.set(haloScale, haloScale, 1);
+      if (o.alert) {
+        o.alert.lookAt(camera.position);
+        o.alert.scale.setScalar(highlight ? 1.28 : 1.04 + (reduceMotion ? 0 : .07 * wave));
+        o.alert.children[0].material.opacity = highlight ? .99 : .73 + .10 * wave;
+      }
     }
 
     const current = objects.find(o => o.item.id === selectedId);
@@ -623,12 +670,12 @@ window.SpaceRadar3D = (() => {
       raycaster = new T.Raycaster();
       glowTexture = glowMap();
       diffuseRock = new T.MeshStandardMaterial({
-        color: 0x8293a6, emissive: 0x1d526d, emissiveIntensity: .22,
-        flatShading: true, roughness: .96, metalness: .06
+        color: 0x74afa6, emissive: 0x0e756b, emissiveIntensity: .35,
+        flatShading: true, roughness: .94, metalness: .07
       });
       riskyRock = new T.MeshStandardMaterial({
-        color: 0xbe7781, emissive: 0x6d2033, emissiveIntensity: .28,
-        flatShading: true, roughness: .94, metalness: .04
+        color: 0xcf745b, emissive: 0xaa4227, emissiveIntensity: .39,
+        flatShading: true, roughness: .92, metalness: .06
       });
       hitGeometry = new T.SphereGeometry(1, 8, 6);
       scene.add(new T.AmbientLight(0x9cb9e4, .4));
