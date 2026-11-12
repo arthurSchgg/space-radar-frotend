@@ -4,7 +4,7 @@
  * NUNCA inclua tokens, senhas, NASA_API_KEY ou RADAR_ADMIN_TOKEN neste arquivo.
  */
 window.SPACE_RADAR_CONFIG = Object.freeze({
-  API_BASE_URL: "http://localhost:8484",
+  API_BASE_URL: "",
   REQUEST_TIMEOUT_MS: 16000,
   PAGE_SIZE: 50
 });

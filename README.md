@@ -13,7 +13,7 @@
 - Testes com **Node.js** nativo (apenas desenvolvimento / CI)
 - Integração com backend **Spring Boot + PostgreSQL + NASA NeoWs**
 
-Não usa React, Vue, Tailwind, Vite nem etapa de build.
+Não usa React, Vue, Tailwind ou Vite. O desenvolvimento local é estático; para deploy na **Vercel**, um script Node.js sem dependências gera `dist/` e injeta somente a URL **pública** da API.
 
 ## Funcionalidades
 
@@ -66,7 +66,7 @@ cd space-radar-frotend
 python -m http.server 5500
 ~~~
 
-3. Acesse **http://localhost:5500**. Como a URL de API vem vazia por padrão, o app inicia em **DEMONSTRAÇÃO — Dados 100% fictícios**.
+3. Acesse **http://localhost:5500**. Como a URL de API versionada vem vazia por padrão, o app inicia em **DEMONSTRAÇÃO — Dados 100% fictícios**.
 
 Também é possível acessar com **?demo=1** para forçar o modo demonstração quando uma URL de API já estiver configurada.
 
@@ -88,7 +88,7 @@ window.SPACE_RADAR_CONFIG = Object.freeze({
 });
 ~~~
 
-4. Configure o backend para permitir a origem do frontend com **RADAR_CORS_ORIGINS** (por exemplo, http://localhost:5500).
+4. Configure o backend para permitir a origem do frontend com **RADAR_CORS_ORIGINS** (por exemplo, http://localhost:5500). Para testes no IntelliJ, use `http://localhost:8484` caso essa seja sua porta; não envie essa alteração local para o Git.
 5. Atualize a página. Se a API foi configurada, o frontend inicia em modo API; também existe o botão **Usar demonstração**.
 
 **Segurança:** nunca inclua NASA_API_KEY, DB_PASSWORD, RADAR_ADMIN_TOKEN ou segredos de qualquer tipo no frontend.
@@ -154,24 +154,42 @@ node --test tests/data.test.js
 
 O GitHub Actions executa essas verificações em PRs de feature e pushes para develop/main.
 
-## Deploy na Vercel
+## Deploy na Vercel (frontend)
 
-1. Importe o repositório no painel Vercel.
-2. Framework: **Other**.
-3. Root Directory: **.**; sem comando de build; site estático.
-4. Para produção, edite **js/config.js** apontando para o backend HTTPS público e abra PR de release.
-5. Inclua a origem HTTPS do frontend no CORS do backend.
-6. Homologue e publique a **main**.
+O repositório inclui `vercel.json` e `scripts/build.cjs`; **não precisa de framework nem de npm install** para publicar.
 
-## Deploy no Render (Static Site)
+1. Primeiro implante o backend no Render e copie a URL HTTPS pública dele (exemplo ilustrativo: `https://space-radar-api.onrender.com`).
+2. Na Vercel, importe este repositório e selecione a branch **main**. Framework Preset: **Other**; Root Directory: `.`.
+3. Em **Settings → Environment Variables**, configure `SPACE_RADAR_API_URL` com a **origem HTTPS pública da API**, sem barra no final. **Não é segredo**: o navegador precisa conhecê-la.
+4. O `vercel.json` executa `node scripts/build.cjs` e publica `dist/`. O script valida a URL HTTPS e gera `dist/js/config.js`; **não altera o arquivo versionado `js/config.js`**.
+5. Configure no Render `RADAR_CORS_ORIGINS=https://seu-site.vercel.app` (e também domínio customizado, se houver), e reinicie a API.
+6. Faça o deploy e consulte o frontend; a API deve ter dados NASA importados para o período escolhido.
 
-1. Conecte o repositório como **Static Site**.
-2. Use a branch **main** depois de aprovar a release.
-3. Build Command: echo "Static site - no build".
-4. Publish Directory: **.**.
-5. Configure a URL HTTPS pública do backend no arquivo de config do frontend; configure CORS correspondente no backend.
+**Se `SPACE_RADAR_API_URL` estiver ausente ou não for HTTPS, a build falha intencionalmente** para não publicar produção inadvertidamente em demonstração ou com `localhost`. Após cadastrar/alterar a variável na Vercel, realize um novo deploy.
 
-Para hospedar o backend Spring Boot, é necessário um **Web Service** e banco PostgreSQL persistente, separados da hospedagem estática do frontend.
+Execução local simples **continua sem build**: sirva `index.html` com Live Server e configure `js/config.js` no seu computador somente durante os testes. `dist/` e `.history/` não são enviados ao Git.
+
+### Checagem local da build da Vercel
+
+~~~powershell
+$env:SPACE_RADAR_API_URL="https://api-publica.example.com"
+node scripts/build.cjs
+Remove-Item Env:SPACE_RADAR_API_URL
+~~~
+
+O endereço acima é apenas um exemplo para verificar a geração do diretório `dist/`; não corresponde a um backend existente.
+
+## Deploy no Render (backend)
+
+O backend Spring Boot utiliza um **Web Service** com Docker e PostgreSQL persistente no Render; o frontend vai para a Vercel, não para um Static Site no Render.
+
+1. No Render, conecte `space-radar-backend` na branch `main`, com runtime **Docker** e Dockerfile `docker/Dockerfile`, usando a raiz do repositório como contexto.
+2. Configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` a partir do PostgreSQL do Render. Não use `localhost` para o banco hospedado.
+3. Configure `NASA_API_KEY`, `RADAR_ADMIN_TOKEN` e `RADAR_CORS_ORIGINS` no serviço do Render, nunca no GitHub/Vercel. Para carregar dados da NASA automaticamente, habilite `RADAR_SYNC_ENABLED=true` e `RADAR_SYNC_ON_STARTUP=true`.
+4. Configure health check `/actuator/health` e confirme que `/v1/radar` responde antes de integrar a Vercel.
+5. Gere **novas** credenciais para produção: o backend registra no README que credenciais antigas já foram versionadas historicamente.
+
+A NASA NeoWs fornece aproximações reais, mas as posições e movimentos 3D são esquemáticos. Homologação em dispositivos reais continua pendente antes da publicação oficial.
 
 ## Git Flow
 
