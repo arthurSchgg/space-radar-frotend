@@ -218,3 +218,19 @@ A partir da versão de polimento visual:
 Além dos testes de dados em Node.js, o GitHub Actions executa um teste de navegação responsiva em **Chromium** nos tamanhos 320×568, 375×667, 390×844, 768×1024, 812×375, 1024×768 e 1440×900. Ele confere overflow horizontal, abas, seleção, detalhes, fechamento, reset da câmera e ausência de exceções JS.
 
 O workflow envia capturas mobile-375.png e desktop-1440.png como artefato responsive-preview para revisão visual. Mesmo com o teste automatizado, **a homologação física de Android/iOS e a integração em produção continuam pendentes**.
+
+
+## Classificação visual: turquesa × coral
+
+**A distinção agora é visível sem depender apenas de cor:**
+
+| Classificação NASA | Cor | Forma | Exibição |
+|---|---|---|---|
+| Não classificado como potencialmente perigoso | Turquesa (#49efce) | Losango | Marcador 3D de brilho turquesa e lista com borda verde-água |
+| Potencialmente perigoso (PHA) | Coral/laranja (#ff7455) | Exclamação e anel de alerta com quatro marcações | Brilho quente mais intenso, contorno na cena, prioridade de leitura na lista e detalhe destacado |
+
+Os asteroides da página são **agrupados na lista**, com os potencialmente perigosos em primeiro lugar e os demais em seguida; em cada grupo há ordenação por distância.
+
+Os cartões coloridos e a barra mostram **contagens apenas dos eventos da página atualmente carregada** pela API (não são totais de todos os asteroides catalogados pela NASA). Em modo demonstração, todos os dados continuam **explicitamente fictícios**.
+
+> "Potencialmente perigoso" é uma classificação astronômica de atenção; não significa que haja previsão de impacto. Posições, anéis e movimentos no radar continuam sendo representações cenográficas dos dados de aproximação.
