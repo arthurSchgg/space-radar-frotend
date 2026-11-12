@@ -37,6 +37,20 @@ test("acabamento 3D e contenção de recursos preservam movimento ilustrativo", 
   assert.match(html, /VISUALIZAÇÃO ILUSTRATIVA/);
 });
 
+test("foco de câmera centraliza marcador e restaura a visão geral", () => {
+  assert.match(radar, /function getViewState/);
+  assert.match(radar, /viewPoint\.lerp\(current \? current\.body\.position : scene\.position/);
+  assert.match(radar, /targetDistance = clamp\(4\.8 \+ object\.scale/);
+  assert.match(radar, /Math\.atan2\(position\.x, position\.z\)/);
+  assert.match(radar, /const smooth = reduceMotion \? 1/);
+  assert.match(html, /id="focusBack"/);
+  assert.match(html, /id="focusIndicator"/);
+  assert.match(app, /function syncFocusUI/);
+  assert.match(app, /setMobileView\("radar"\)/);
+  assert.match(app, /focusBack/);
+  assert.match(css, /data-focus-active="true"/);
+});
+
 test("risco usa legenda, contagem por página e agrupamento acessível", () => {
   assert.match(html, /id="riskSafeCount"/);
   assert.match(html, /id="riskHazCount"/);
