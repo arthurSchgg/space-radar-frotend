@@ -66,7 +66,7 @@ cd space-radar-frotend
 python -m http.server 5500
 ~~~
 
-3. Acesse **http://localhost:5500**. Como a URL de API versionada vem vazia por padrão, o app inicia em **DEMONSTRAÇÃO — Dados 100% fictícios**.
+3. Acesse **http://localhost:5500**. A URL de API versionada aponta para o backend público do Render; caso queira usar o backend local, ajuste temporariamente `js/config.js` para `http://localhost:8484`. O modo de demonstração pode ser acionado com `?demo=1`.
 
 Também é possível acessar com **?demo=1** para forçar o modo demonstração quando uma URL de API já estiver configurada.
 
@@ -83,7 +83,7 @@ Repositório: [space-radar-backend](https://github.com/arthurSchgg/space-radar-b
 ~~~js
 window.SPACE_RADAR_CONFIG = Object.freeze({
   API_BASE_URL: "http://localhost:8181",
-  REQUEST_TIMEOUT_MS: 16000,
+  REQUEST_TIMEOUT_MS: 90000,
   PAGE_SIZE: 50
 });
 ~~~
@@ -162,8 +162,8 @@ O repositório inclui `vercel.json` e `scripts/build.cjs`; **não precisa de fra
 2. Na Vercel, importe este repositório e selecione a branch **main**. Framework Preset: **Other**; Root Directory: `.`.
 3. Em **Settings → Environment Variables**, configure `SPACE_RADAR_API_URL` com a **origem HTTPS pública da API**, sem barra no final. **Não é segredo**: o navegador precisa conhecê-la.
 4. O `vercel.json` executa `node scripts/build.cjs` e publica `dist/`. O script valida a URL HTTPS e gera `dist/js/config.js`; **não altera o arquivo versionado `js/config.js`**.
-5. Configure no Render `RADAR_CORS_ORIGINS=https://seu-site.vercel.app` (e também domínio customizado, se houver), e reinicie a API.
-6. Faça o deploy e consulte o frontend; a API deve ter dados NASA importados para o período escolhido.
+5. Configure no Render `RADAR_CORS_ORIGINS=https://space-radar-frotend.vercel.app,http://localhost:5500` (e também domínio customizado, se houver), e reinicie a API. **O nome correto do projeto é `space-radar-frotend`**, não `space-radar`.
+6. Faça o deploy e consulte o frontend; a API deve ter dados NASA importados para o período escolhido. O timeout do frontend é de 90 segundos para tolerar o despertar do Render gratuito.
 
 **Se `SPACE_RADAR_API_URL` estiver ausente ou não for HTTPS, a build falha intencionalmente** para não publicar produção inadvertidamente em demonstração ou com `localhost`. Após cadastrar/alterar a variável na Vercel, realize um novo deploy.
 
@@ -181,10 +181,10 @@ O endereço acima é apenas um exemplo para verificar a geração do diretório 
 
 ## Deploy no Render (backend)
 
-O backend Spring Boot utiliza um **Web Service** com Docker e PostgreSQL persistente no Render; o frontend vai para a Vercel, não para um Static Site no Render.
+O backend Spring Boot utiliza um **Web Service** com Docker no Render e PostgreSQL hospedado no **Neon**; o frontend é publicado na Vercel.
 
 1. No Render, conecte `space-radar-backend` na branch `main`, com runtime **Docker** e Dockerfile `docker/Dockerfile`, usando a raiz do repositório como contexto.
-2. Configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` a partir do PostgreSQL do Render. Não use `localhost` para o banco hospedado.
+2. Configure `SPRING_DATASOURCE_URL` com a URL JDBC direta do Neon (`jdbc:postgresql://.../space_radar?sslmode=require`), além de `DB_USERNAME` e `DB_PASSWORD` nas variáveis privadas do Render. Não use `localhost` para o banco hospedado.
 3. Configure `NASA_API_KEY`, `RADAR_ADMIN_TOKEN` e `RADAR_CORS_ORIGINS` no serviço do Render, nunca no GitHub/Vercel. Para carregar dados da NASA automaticamente, habilite `RADAR_SYNC_ENABLED=true` e `RADAR_SYNC_ON_STARTUP=true`.
 4. Configure health check `/actuator/health` e confirme que `/v1/radar` responde antes de integrar a Vercel.
 5. Gere **novas** credenciais para produção: o backend registra no README que credenciais antigas já foram versionadas historicamente.
