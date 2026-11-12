@@ -122,6 +122,14 @@
     list.replaceChildren();
     $("totalObjects").textContent = formatNumber(state.totalElements, 0);
     $("hudCount").textContent = pad(visible.length) + " OBJECTS VISIBLE";
+    const hazardCount = state.events.filter(item => item.hazardous).length;
+    const safeCount = state.events.length - hazardCount;
+    $("riskHazCount").textContent = formatNumber(hazardCount, 0);
+    $("riskSafeCount").textContent = formatNumber(safeCount, 0);
+    $("riskMeterSafe").style.flexGrow = String(safeCount);
+    $("riskMeterHaz").style.flexGrow = String(hazardCount);
+    $("riskMeterSafe").hidden = safeCount === 0;
+    $("riskMeterHaz").hidden = hazardCount === 0;
     $("pageInfo").textContent = "Página " + (state.page + 1) + " de " +
       Math.max(1, state.totalPages);
     $("prevPage").disabled = state.loading || state.page < 1;
@@ -136,21 +144,45 @@
       list.append(item);
       return;
     }
-    for (const obj of visible) {
+    // Sort only the list: flagged events first, then by distance.
+    // The 3D scene keeps the original data order/positions.
+    const ordered = [...visible].sort((a, b) =>
+      Number(b.hazardous) - Number(a.hazardous) ||
+      a.distanceKm - b.distanceKm);
+    let lastGroup = null;
+    for (const obj of ordered) {
+      const group = obj.hazardous ? "hazardous" : "safe";
+      if (group !== lastGroup) {
+        const header = domText("li", "risk-group " + group,
+          obj.hazardous ? "POTENCIALMENTE PERIGOSOS" : "NÃO CLASSIFICADOS COMO PERIGOSOS");
+        header.setAttribute("role", "presentation");
+        list.append(header);
+        lastGroup = group;
+      }
       const li = document.createElement("li");
       const button = document.createElement("button");
       button.type = "button";
-      button.className = obj.id === state.selectedId ? "is-selected" : "";
+      button.className = "risk-row " + group +
+        (obj.id === state.selectedId ? " is-selected" : "");
       button.setAttribute("aria-pressed", String(obj.id === state.selectedId));
-      button.setAttribute("aria-label", "Selecionar " + obj.name +
-        ", a " + formatNumber(obj.lunarDistance, 2) + " distâncias lunares");
-      const dot = domText("i", "dot " + (obj.hazardous ? "dangerous" : "normal"), "");
+      const riskText = obj.hazardous
+        ? "potencialmente perigoso" : "não classificado como potencialmente perigoso";
+      button.setAttribute("aria-label", "Selecionar " + obj.name + ", " +
+        riskText + ", a " + formatNumber(obj.lunarDistance, 2) + " distâncias lunares");
+      const glyph = domText("span", "risk-symbol " + group,
+        obj.hazardous ? "!" : "◆");
+      glyph.setAttribute("aria-hidden", "true");
       const caption = document.createElement("span");
-      caption.append(domText("span", "object-name", obj.name),
-        domText("small", "object-subtitle", "NASA ID " + (obj.nasaId || "—")));
+      caption.className = "risk-row-info";
+      caption.append(
+        domText("span", "object-name", obj.name),
+        domText("small", "object-subtitle",
+          (obj.hazardous ? "⚠ POT. PERIGOSO" : "◆ NÃO PERIGOSO") +
+          " · NASA " + (obj.nasaId || "—"))
+      );
       const dist = domText("span", "object-distance",
         formatNumber(obj.lunarDistance, 1) + " DL");
-      button.append(dot, caption, dist);
+      button.append(glyph, caption, dist);
       button.addEventListener("click", () => selectObject(obj.id));
       li.append(button);
       list.append(li);
@@ -172,9 +204,9 @@
     panel.hidden = false;
     $("detailBackdrop").hidden = !compactViewport.matches;
     $("detailRisk").textContent = obj.hazardous ?
-      "POTENCIALMENTE PERIGOSO" : "OBJETO MONITORADO";
+      "⚠ POTENCIALMENTE PERIGOSO" : "◆ NÃO CLASSIFICADO COMO PERIGOSO";
     $("detailRisk").className = "object-type" +
-      (obj.hazardous ? " hazardous" : "");
+      (obj.hazardous ? " hazardous" : " safe");
     $("detailTitle").textContent = obj.name;
     $("detailId").textContent = "NASA ID / " + (obj.nasaId || "—");
     const dl = $("detailMetrics");

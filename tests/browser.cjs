@@ -62,6 +62,17 @@ async function ready(url) {
         "Overflow horizontal em " + viewport.width + "×" + viewport.height + ": " + JSON.stringify(layout));
       assert.equal(layout.navVisible, compact, "Dock incorreto em " + viewport.width);
       assert(layout.fictional, "Modo de demonstração deve ficar identificado");
+      const groups = await page.evaluate(() => {
+        const danger = document.querySelectorAll("#objectList .risk-row.hazardous").length;
+        const safe = document.querySelectorAll("#objectList .risk-row.safe").length;
+        const dangerCount = Number(document.getElementById("riskHazCount").textContent);
+        const safeCount = Number(document.getElementById("riskSafeCount").textContent);
+        return { danger, safe, dangerCount, safeCount };
+      });
+      assert(groups.danger > 0 && groups.safe > 0,
+        "Demonstração deve conter as duas categorias");
+      assert.equal(groups.danger, groups.dangerCount);
+      assert.equal(groups.safe, groups.safeCount);
       assert.equal(layout.objectsVisible, !compact, "Lista sobreposta em " + viewport.width);
       assert.equal(layout.controlsVisible, !compact, "Filtros sobrepostos em " + viewport.width);
       if (compact) {
@@ -69,8 +80,14 @@ async function ready(url) {
         assert.equal(await page.locator(".objects-panel").isVisible(), true);
         await page.locator("#objectList button").first().click();
         assert.equal(await page.locator("#detailPanel").isVisible(), true);
+        assert.match(await page.locator("#detailRisk").textContent(),
+          /POTENCIALMENTE PERIGOSO/);
         await page.locator("#closeDetail").click();
         assert.equal(await page.locator("#detailPanel").isVisible(), false);
+        await page.locator("#objectList button.risk-row.safe").first().click();
+        assert.match(await page.locator("#detailRisk").textContent(),
+          /NÃO CLASSIFICADO COMO PERIGOSO/);
+        await page.locator("#closeDetail").click();
         await page.locator(".mobile-dock button[data-view='controls']").click();
         assert.equal(await page.locator("#controls").isVisible(), true);
         await page.locator("#resetCamera").click();
