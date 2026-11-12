@@ -8,11 +8,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const raw = (process.env.SPACE_RADAR_API_URL || "").trim();
-if (!raw) {
-  console.error("SPACE_RADAR_API_URL is required. Set it to the Render API HTTPS origin in Vercel.");
-  process.exit(1);
-}
+const DEFAULT_PUBLIC_API_URL = "https://space-radar-backend.onrender.com";
+const raw = (process.env.SPACE_RADAR_API_URL || DEFAULT_PUBLIC_API_URL).trim();
 
 let apiUrl;
 try {
@@ -40,7 +37,7 @@ const configuration = [
   "/* Generated at build time with the PUBLIC backend URL; do not add secrets. */",
   "window.SPACE_RADAR_CONFIG = Object.freeze({",
   "  API_BASE_URL: " + JSON.stringify(apiUrl) + ",",
-  "  REQUEST_TIMEOUT_MS: 16000,",
+  "  REQUEST_TIMEOUT_MS: 90000,",
   "  PAGE_SIZE: 50",
   "});",
   ""
