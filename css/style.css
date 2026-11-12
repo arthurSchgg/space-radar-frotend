@@ -583,3 +583,59 @@ button:disabled {opacity:.4;cursor:not-allowed}
   .object-list button.risk-row {min-height:52px;padding-block:7px}
   .risk-group {padding-top:8px!important;padding-bottom:5px!important}
 }
+
+
+/* Focus inspection: a compact, non-modal indicator keeps the 3D target visible. */
+.focus-indicator {
+  position:fixed;z-index:11;top:94px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;justify-content:space-between;gap:13px;
+  width:max-content;max-width:min(430px,calc(100vw - 28px));padding:11px 13px;
+  border:1px solid rgba(73,239,206,.36);border-radius:12px;
+  background:rgba(5,14,30,.88);box-shadow:0 14px 35px rgba(0,0,0,.3);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  pointer-events:auto
+}
+.focus-indicator.is-hazardous {border-color:rgba(255,116,85,.5)}
+.focus-indicator-copy {display:grid;gap:3px;min-width:0}
+.focus-indicator-copy strong {
+  font:700 13px/1.2 var(--display);color:#eaf8ff;
+  max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.focus-eyebrow {font:700 8px/1.3 var(--display);letter-spacing:1px;color:var(--safe)}
+.focus-indicator.is-hazardous .focus-eyebrow {color:var(--haz-bright)}
+.focus-indicator button {
+  flex-shrink:0;min-height:38px;border:1px solid rgba(125,193,234,.38);
+  border-radius:8px;background:rgba(40,89,119,.31);
+  font:700 9px var(--display);color:#c2eaff;padding:9px 10px
+}
+.focus-indicator button:hover {background:rgba(68,136,169,.4)}
+@media (max-width:900px) {
+  body[data-focus-active="true"] .intro,
+  body[data-focus-active="true"] .radar-key,
+  body[data-focus-active="true"] .bottom-hud {display:none}
+  .focus-indicator {
+    top:calc(78px + env(safe-area-inset-top,0px));
+    max-width:calc(100vw - 24px);width:min(420px,calc(100vw - 24px))
+  }
+  .focus-indicator-copy strong {max-width:clamp(90px,39vw,200px)}
+  body[data-focus-active="true"] .detail-panel:not([hidden]) {
+    max-height:min(200px,31dvh);bottom:calc(100px + env(safe-area-inset-bottom,0px));
+    padding:12px 15px;overflow:auto;
+    border-color:rgba(130,184,235,.36);
+    background:rgba(6,13,29,.88)
+  }
+  body[data-focus-active="true"] .detail-panel .detail-top button {
+    min-height:36px;min-width:40px
+  }
+  body[data-focus-active="true"] .detail-body {padding-top:5px}
+  body[data-focus-active="true"] .detail-body h2 {font-size:18px;margin:4px 0}
+  body[data-focus-active="true"] .detail-panel .details-grid {padding-top:8px;gap:7px 10px}
+  body[data-focus-active="true"] .detail-panel .detail-note {margin-top:8px}
+}
+@media (max-width:900px) and (orientation:landscape) and (max-height:560px) {
+  .focus-indicator {top:65px;max-width:65vw;padding:6px 10px}
+  .focus-indicator button {min-height:33px;padding:7px}
+  body[data-focus-active="true"] .detail-panel:not([hidden]) {
+    max-height:min(118px,31dvh);bottom:66px
+  }
+}

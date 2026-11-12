@@ -193,6 +193,16 @@
     dl.append(domText("dt", "", name), domText("dd", "", value));
   }
 
+  function syncFocusUI() {
+    const selected = state.events.find(item => item.id === state.selectedId);
+    const focused = Boolean(selected && radar.isReady());
+    document.body.dataset.focusActive = String(focused);
+    $("focusIndicator").hidden = !focused;
+    $("focusLabel").textContent = focused ? selected.name : "";
+    $("focusIndicator").classList.toggle("is-hazardous", focused && selected.hazardous);
+    return focused;
+  }
+
   function updateDetails() {
     const panel = $("detailPanel");
     const obj = state.events.find(item => item.id === state.selectedId);
@@ -202,7 +212,8 @@
       return;
     }
     panel.hidden = false;
-    $("detailBackdrop").hidden = !compactViewport.matches;
+    $("detailBackdrop").hidden = !compactViewport.matches ||
+      document.body.dataset.focusActive === "true";
     $("detailRisk").textContent = obj.hazardous ?
       "⚠ POTENCIALMENTE PERIGOSO" : "◆ NÃO CLASSIFICADO COMO PERIGOSO";
     $("detailRisk").className = "object-type" +
@@ -230,6 +241,11 @@
     if (state.detailsController) state.detailsController.abort();
     state.detailsController = null;
     if (radar.isReady()) radar.select(id);
+    const focused = syncFocusUI();
+    // Selecting from the mobile list must reveal the radar, not hide the target.
+    if (focused && compactViewport.matches && mobileView === "objects") {
+      setMobileView("radar");
+    }
     updateDetails();
     updateList(visible);
     const item = visible.find(obj => obj.id === id);
@@ -262,6 +278,7 @@
       radar.setObjects(visible);
       radar.select(state.selectedId);
     }
+    syncFocusUI();
     updateList(visible);
     updateDetails();
   }
@@ -346,9 +363,11 @@
     });
     $("detailBackdrop").addEventListener("click", () => selectObject(null));
     $("resetCamera").addEventListener("click", () => {
+      selectObject(null);
       radar.resetCamera();
       if (compactViewport.matches) setMobileView("radar");
     });
+    $("focusBack").addEventListener("click", () => selectObject(null));
     $("allFilter").addEventListener("click", () => changeRisk(false));
     $("hazardFilter").addEventListener("click", () => changeRisk(true));
     $("applyFilters").addEventListener("click", () => {
