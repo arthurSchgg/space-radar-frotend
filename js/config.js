@@ -5,6 +5,6 @@
  */
 window.SPACE_RADAR_CONFIG = Object.freeze({
   API_BASE_URL: "http://localhost:8484",
-  REQUEST_TIMEOUT_MS: 16000,
+  REQUEST_TIMEOUT_MS: 90000,
   PAGE_SIZE: 50
 });
