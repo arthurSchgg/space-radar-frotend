@@ -25,6 +25,17 @@ jobs:
           node --check js/app.js
       - name: Data tests
         run: node --test tests/*.test.js
+      - name: Verify Vercel production bundle
+        env:
+          SPACE_RADAR_API_URL: https://space-radar-api.example.com
+        run: |
+          node scripts/build.cjs
+          node --check dist/js/config.js
+          test -s dist/index.html
+          test -s dist/css/style.css
+          test -s dist/js/radar.js
+          grep -q 'https://space-radar-api.example.com' dist/js/config.js
+          ! grep -q 'localhost' dist/js/config.js
       - name: Static assets
         run: |
           test -s index.html
