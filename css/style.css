@@ -570,3 +570,16 @@ button:disabled {opacity:.4;cursor:not-allowed}
 @media (max-height:560px) and (min-width:901px) {
   .radar-key {display:none}
 }
+
+
+/* Short landscape phones: leave room for the actual event list. */
+@media (max-width:900px) and (orientation:landscape) and (max-height:560px) {
+  .risk-overview,.list-legend {display:none}
+  .objects-heading {padding:7px 10px 6px;flex-shrink:0}
+  .objects-heading h2 {font-size:15px;margin:3px 0 5px}
+  .search-field {height:32px}
+  .objects-footer {min-height:44px;padding:4px 10px}
+  .page-buttons button {min-height:36px;height:36px}
+  .object-list button.risk-row {min-height:52px;padding-block:7px}
+  .risk-group {padding-top:8px!important;padding-bottom:5px!important}
+}

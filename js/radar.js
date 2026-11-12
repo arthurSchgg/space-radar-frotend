@@ -360,7 +360,7 @@ window.SpaceRadar3D = (() => {
       new T.RingGeometry(1.13, 1.23, 48),
       new T.MeshBasicMaterial({
         color: 0xff7951, transparent: true, opacity: .78,
-        side: T.DoubleSide, depthWrite: false, depthTest: false
+        side: T.DoubleSide, depthWrite: false, depthTest: true
       })
     ));
     const ticks = [];
@@ -375,7 +375,7 @@ window.SpaceRadar3D = (() => {
       new T.BufferGeometry().setFromPoints(ticks),
       new T.LineBasicMaterial({
         color: 0xffbd7e, transparent: true, opacity: .82,
-        depthTest: false, depthWrite: false
+        depthTest: true, depthWrite: false
       })
     ));
     return group;
