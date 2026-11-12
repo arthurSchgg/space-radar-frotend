@@ -252,3 +252,12 @@ Os asteroides da página são **agrupados na lista**, com os potencialmente peri
 Os cartões coloridos e a barra mostram **contagens apenas dos eventos da página atualmente carregada** pela API (não são totais de todos os asteroides catalogados pela NASA). Em modo demonstração, todos os dados continuam **explicitamente fictícios**.
 
 > "Potencialmente perigoso" é uma classificação astronômica de atenção; não significa que haja previsão de impacto. Posições, anéis e movimentos no radar continuam sendo representações cenográficas dos dados de aproximação.
+
+## Inspeção de asteroides com foco 3D
+
+Selecionar um objeto pela lista ou clicando no radar centraliza a câmera no **marcador esquemático** e realiza uma aproximação suave. O enquadramento se orienta pelo lado externo do anel ilustrativo, acompanha o objeto e permite arrastar para orbitar ou usar a roda do mouse/pinça para regular o zoom.
+
+- No **desktop**, o cartão de detalhes permanece visível; o botão **Visão geral** retorna à Terra.
+- Em **celulares e tablets**, tocar em um asteroide na lista abre a aba Radar automaticamente e mostra um cartão compacto sem bloquear o canvas. É possível voltar à lista ou à visão geral.
+- Fechar os detalhes, limpar a seleção, trocar filtros ou usar **Centralizar câmera** retorna ao panorama. Preferências de movimento reduzido eliminam a animação da câmera.
+- Direção e movimento 3D dos objetos continuam **artísticos**; zoom e diâmetro ilustrativo não representam coordenadas, trajetórias nem tamanhos reais em escala da NASA.

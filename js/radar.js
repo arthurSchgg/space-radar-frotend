@@ -18,6 +18,8 @@ window.SpaceRadar3D = (() => {
   let sweepEnabled = true, galaxyEnabled = true, autoRotate = !reduceMotion;
   let speed = reduceMotion ? 0 : 1;
   let angle = .54, elevation = .34;
+  let targetAngle = angle, targetElevation = elevation;
+  let viewPoint = null;
   const idealDistance = () => window.innerWidth <= 900 ? 37 : 42;
   let cameraDistance = idealDistance();
   let targetDistance = cameraDistance;
@@ -451,9 +453,9 @@ window.SpaceRadar3D = (() => {
     });
     objects = next.map(makeObject);
     hitTargets = objects.map(o => o.hit);
-    if (!objects.some(o => o.item.id === selectedId)) selectedId = null;
     for (const obj of objects) locate(obj);
-    updateSelection();
+    if (!objects.some(o => o.item.id === selectedId)) select(null);
+    else updateSelection();
   }
 
   function locate(obj) {
@@ -476,7 +478,24 @@ window.SpaceRadar3D = (() => {
   }
 
   function select(id) {
-    selectedId = id;
+    const object = objects.find(o => o.item.id === id);
+    const nextId = object ? object.item.id : null;
+    // Do not restart an active camera transition on routine UI re-renders.
+    if (nextId === selectedId) return;
+    selectedId = nextId;
+    if (object) {
+      const position = object.body.position;
+      // Aim from outside the illustrative orbital ring so Earth does not
+      // obscure the asteroid in the final close-up.
+      const radialAngle = Math.atan2(position.x, position.z);
+      targetAngle = angle + Math.atan2(Math.sin(radialAngle - angle),
+        Math.cos(radialAngle - angle));
+      targetElevation = clamp(.22 + position.y / Math.max(object.radius, 1) * .4,
+        .12, .45);
+      targetDistance = clamp(4.8 + object.scale * 3.5, 4.8, 7);
+    } else {
+      resetCamera();
+    }
     updateSelection();
   }
 
@@ -519,8 +538,8 @@ window.SpaceRadar3D = (() => {
   }
 
   function resetCamera() {
-    angle = .54;
-    elevation = .34;
+    targetAngle = angle + Math.atan2(Math.sin(.54 - angle), Math.cos(.54 - angle));
+    targetElevation = .34;
     targetDistance = idealDistance();
   }
 
@@ -548,7 +567,8 @@ window.SpaceRadar3D = (() => {
           const dy = event.clientY - another[1][1];
           const next = Math.hypot(dx, dy);
           if (pinchDistance) {
-            targetDistance = clamp(targetDistance * pinchDistance / Math.max(next, 1), 13, 100);
+            targetDistance = clamp(targetDistance * pinchDistance / Math.max(next, 1),
+              selectedId == null ? 13 : 2.6, selectedId == null ? 100 : 48);
           }
           pinchDistance = next;
           moved = 100;
@@ -559,6 +579,9 @@ window.SpaceRadar3D = (() => {
         moved += Math.abs(dx) + Math.abs(dy);
         angle -= dx * .005;
         elevation = clamp(elevation + dy * .004, -1.25, 1.25);
+        // Manual orbit overrides any unfinished cinematic orientation.
+        targetAngle = angle;
+        targetElevation = elevation;
       }
       activePointers.set(event.pointerId, [event.clientX, event.clientY]);
     });
@@ -576,7 +599,8 @@ window.SpaceRadar3D = (() => {
     canvas.addEventListener("pointercancel", event => finish(event, true));
     canvas.addEventListener("wheel", event => {
       event.preventDefault();
-      targetDistance = clamp(targetDistance * (1 + event.deltaY * .0011), 13, 100);
+      targetDistance = clamp(targetDistance * (1 + event.deltaY * .0011),
+        selectedId == null ? 13 : 2.6, selectedId == null ? 100 : 48);
     }, { passive: false });
     canvas.addEventListener("pointerleave", event => tooltip(event, null));
     addEventListener("resize", resize);
@@ -597,6 +621,7 @@ window.SpaceRadar3D = (() => {
       galaxy.rotation.y += dt * .0014;
       if (autoRotate && activePointers.size === 0 && selectedId == null) {
         angle += dt * .018;
+        targetAngle += dt * .018;
       }
       sweepTime += dt * .48;
     }
@@ -639,13 +664,20 @@ window.SpaceRadar3D = (() => {
       selectedLine.geometry.computeBoundingSphere();
     }
 
-    cameraDistance += (targetDistance - cameraDistance) * .09;
+    // Track the moving SCHEMATIC marker without assuming real NASA 3D positions.
+    // Frame-rate-independent damping at both 30 and 60 FPS.
+    const smooth = reduceMotion ? 1 : 1 - Math.exp(-dt * 4.2);
+    const turnSmooth = reduceMotion ? 1 : 1 - Math.exp(-dt * 3.4);
+    viewPoint.lerp(current ? current.body.position : scene.position, smooth);
+    cameraDistance += (targetDistance - cameraDistance) * smooth;
+    angle += (targetAngle - angle) * turnSmooth;
+    elevation += (targetElevation - elevation) * turnSmooth;
     camera.position.set(
-      cameraDistance * Math.cos(elevation) * Math.sin(angle),
-      cameraDistance * Math.sin(elevation),
-      cameraDistance * Math.cos(elevation) * Math.cos(angle)
+      viewPoint.x + cameraDistance * Math.cos(elevation) * Math.sin(angle),
+      viewPoint.y + cameraDistance * Math.sin(elevation),
+      viewPoint.z + cameraDistance * Math.cos(elevation) * Math.cos(angle)
     );
-    camera.lookAt(0, 0, 0);
+    camera.lookAt(viewPoint);
     renderer.render(scene, camera);
   }
 
@@ -667,6 +699,7 @@ window.SpaceRadar3D = (() => {
       renderer.toneMappingExposure = 1.35;
       scene = new T.Scene();
       camera = new T.PerspectiveCamera(53, 1, .1, 1000);
+      viewPoint = new T.Vector3();
       raycaster = new T.Raycaster();
       glowTexture = glowMap();
       diffuseRock = new T.MeshStandardMaterial({
@@ -716,9 +749,16 @@ window.SpaceRadar3D = (() => {
   function setSweep(next) { sweepEnabled = Boolean(next); }
   function setAutoRotate(next) { autoRotate = !reduceMotion && Boolean(next); }
   function isReady() { return !!renderer; }
+  // Read-only schematic view snapshot for interactive regression tests.
+  function getViewState() {
+    return {
+      selectedId, distance: cameraDistance,
+      aim: viewPoint ? { x: viewPoint.x, y: viewPoint.y, z: viewPoint.z } : null
+    };
+  }
 
   return Object.freeze({
     init, setObjects, select, setSpeed, resetCamera,
-    setGalaxy, setSweep, setAutoRotate, isReady
+    setGalaxy, setSweep, setAutoRotate, isReady, getViewState
   });
 })();

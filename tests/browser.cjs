@@ -78,12 +78,30 @@ async function ready(url) {
       if (compact) {
         await page.locator(".mobile-dock button[data-view='objects']").click();
         assert.equal(await page.locator(".objects-panel").isVisible(), true);
+        const ready3D = await page.evaluate(() => window.SpaceRadar3D.isReady());
+        const overview = await page.evaluate(() => window.SpaceRadar3D.getViewState());
         await page.locator("#objectList button").first().click();
         assert.equal(await page.locator("#detailPanel").isVisible(), true);
         assert.match(await page.locator("#detailRisk").textContent(),
           /POTENCIALMENTE PERIGOSO/);
+        if (ready3D) {
+          assert.equal(await page.locator("#focusIndicator").isVisible(), true);
+          assert.equal(await page.locator(".mobile-dock button[data-view='radar']")
+            .getAttribute("aria-pressed"), "true");
+          assert.equal(await page.locator("#detailBackdrop").isVisible(), false);
+          if (viewport.width === 375) {
+            await page.waitForTimeout(1100);
+            const closeUp = await page.evaluate(() => window.SpaceRadar3D.getViewState());
+            assert(closeUp.selectedId != null, "O foco precisa acompanhar um asteroide");
+            assert(closeUp.distance < overview.distance * .65, "Zoom no alvo não ocorreu");
+            assert(Math.hypot(closeUp.aim.x, closeUp.aim.y, closeUp.aim.z) > 4,
+              "O enquadramento deve mirar o asteroide em vez da Terra");
+          }
+        }
         await page.locator("#closeDetail").click();
         assert.equal(await page.locator("#detailPanel").isVisible(), false);
+        assert.equal(await page.locator("#focusIndicator").isVisible(), false);
+        await page.locator(".mobile-dock button[data-view='objects']").click();
         await page.locator("#objectList button.risk-row.safe").first().click();
         assert.match(await page.locator("#detailRisk").textContent(),
           /NÃO CLASSIFICADO COMO PERIGOSO/);
@@ -97,6 +115,25 @@ async function ready(url) {
           await page.screenshot({ path: path.join(root, "artifacts", "mobile-375.png") });
         }
       } else if (viewport.width === 1440) {
+        const ready3D = await page.evaluate(() => window.SpaceRadar3D.isReady());
+        const overview = await page.evaluate(() => window.SpaceRadar3D.getViewState());
+        await page.locator("#objectList button").first().click();
+        assert.equal(await page.locator("#detailPanel").isVisible(), true);
+        if (ready3D) {
+          await page.waitForTimeout(1200);
+          const closeUp = await page.evaluate(() => window.SpaceRadar3D.getViewState());
+          assert(closeUp.selectedId, "Asteroide não foi selecionado");
+          assert(closeUp.distance < overview.distance * .65, "Câmera não aproximou");
+          assert(Math.hypot(closeUp.aim.x, closeUp.aim.y, closeUp.aim.z) > 4,
+            "Câmera continua mirando a Terra");
+          await page.locator("#focusBack").click();
+          await page.waitForTimeout(700);
+          const returned = await page.evaluate(() => window.SpaceRadar3D.getViewState());
+          assert.equal(returned.selectedId, null, "Seleção não foi limpa");
+          assert(returned.distance > closeUp.distance * 1.6, "Câmera não retornou");
+        } else {
+          await page.locator("#closeDetail").click();
+        }
         await page.screenshot({ path: path.join(root, "artifacts", "desktop-1440.png") });
       }
       console.log("PASS " + viewport.width + "×" + viewport.height);
