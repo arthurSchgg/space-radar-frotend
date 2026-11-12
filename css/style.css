@@ -213,3 +213,185 @@ button:disabled {opacity:.4;cursor:not-allowed}
 @media (prefers-reduced-motion:reduce) {
   *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
+
+
+/* ---------- Responsive experience v2: real mobile navigation & safe areas ---------- */
+.reset-camera {
+  width:100%;min-height:40px;display:block;margin-top:9px;padding:9px;
+  border:1px solid rgba(115,222,252,.22);border-radius:8px;
+  background:rgba(23,42,64,.45);color:#adcee5;
+  font:700 10px var(--display);letter-spacing:.8px
+}
+.reset-camera:hover {background:rgba(45,91,127,.47);border-color:#55badd}
+.mobile-dock {display:none}
+.detail-backdrop {display:none}
+.panel,.control-panel,.objects-panel,.detail-panel {overscroll-behavior:contain}
+.objects-panel,.control-panel {scrollbar-width:thin;scrollbar-color:#3a5a77 transparent}
+.object-list button,.control-panel button,.page-buttons button {touch-action:manipulation}
+.object-list button:focus-visible,.mobile-dock button:focus-visible {outline-offset:-3px}
+@media (max-width:900px) {
+  body {overflow:hidden;width:100%;height:100dvh;max-height:100dvh}
+  .overlay {height:100dvh;min-height:0}
+  .topbar {
+    top:0;padding:calc(11px + env(safe-area-inset-top,0px))
+    calc(15px + env(safe-area-inset-right,0px))
+    11px calc(15px + env(safe-area-inset-left,0px));
+    min-height:calc(69px + env(safe-area-inset-top,0px));
+    gap:10px
+  }
+  .top-actions {min-width:0}
+  .status {max-width: min(38vw,190px);line-height:1.3;white-space:normal;font-size:10px}
+  .status i {flex-shrink:0}
+  .source-link {display:none}
+  .intro {left:calc(18px + env(safe-area-inset-left,0px));top:calc(89px + env(safe-area-inset-top,0px));width:min(330px,calc(100vw - 36px))}
+  .intro h1 {font-size:clamp(27px,4.2vw,35px)}
+  .intro p {font-size:12px;max-width:270px}
+  .intro .data-mode {max-width:100%}
+  .control-panel,.objects-panel {
+    position:fixed;z-index:12;
+    top:calc(94px + env(safe-area-inset-top,0px));
+    right:calc(14px + env(safe-area-inset-right,0px));
+    bottom:calc(100px + env(safe-area-inset-bottom,0px));
+    left:calc(14px + env(safe-area-inset-left,0px));
+    width:auto;height:auto;max-width:540px;max-height:none;
+    margin-left:auto;margin-right:auto;border-radius:17px;min-height:0
+  }
+  .control-panel {overflow-y:auto}
+  .control-panel[open] {max-height:none}
+  .control-panel:not([open]) {height:auto;min-height:0;overflow:auto}
+  .control-panel summary {padding:17px 20px;min-height:54px}
+  .control-inner {padding:3px 20px 23px}
+  .control-label input,.control-label select {height:45px;font-size:13px;padding-inline:10px}
+  .segmented legend,.control-label,.slider-title {font-size:11px}
+  .segment,.apply-button,.reset-camera,.text-button {min-height:44px;font-size:12px}
+  .toggle {min-height:45px;font-size:13px}
+  .toggle input {width:19px;height:19px}
+  #speed {min-height:32px}
+  .objects-heading {padding:19px 18px 14px}
+  .objects-heading h2 {font-size:20px}
+  .objects-heading-label {font-size:10px}
+  .search-field {height:44px}
+  .search-field input {font-size:14px}
+  .list-legend {margin-top:13px;font-size:11px}
+  .object-list {padding:8px}
+  .object-list button {min-height:59px;padding:10px 11px}
+  .object-name {font-size:13px}.object-subtitle,.object-distance {font-size:11px}
+  .objects-footer {min-height:58px;padding:9px 16px;font-size:12px}
+  .page-buttons button {min-width:44px;min-height:44px}
+  body:not([data-mobile-view="controls"]) .control-panel,
+  body:not([data-mobile-view="objects"]) .objects-panel {display:none}
+  body[data-mobile-view="controls"] .intro,
+  body[data-mobile-view="objects"] .intro,
+  body[data-mobile-view="controls"] .bottom-hud,
+  body[data-mobile-view="objects"] .bottom-hud {display:none}
+  .mobile-dock {
+    pointer-events:auto;position:fixed;z-index:18;
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
+    left:calc(14px + env(safe-area-inset-left,0px));
+    right:calc(14px + env(safe-area-inset-right,0px));
+    bottom:calc(12px + env(safe-area-inset-bottom,0px));
+    max-width:540px;margin:0 auto;
+    padding:7px;background:rgba(8,15,34,.91);
+    border:1px solid rgba(128,170,221,.27);border-radius:16px;
+    box-shadow:0 12px 30px rgba(0,0,0,.34);
+    backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)
+  }
+  .mobile-dock button {
+    min-width:0;min-height:52px;border:1px solid transparent;border-radius:10px;
+    background:transparent;color:#9cacc6;letter-spacing:.7px;
+    font:700 10px var(--display);display:flex;justify-content:center;
+    align-items:center;gap:8px
+  }
+  .mobile-dock button span {font:400 22px var(--body);line-height:1}
+  .mobile-dock button[aria-pressed="true"] {
+    color:#a2ebff;background:rgba(79,173,234,.16);
+    border-color:rgba(104,206,255,.28)
+  }
+  .bottom-hud {
+    bottom:calc(124px + env(safe-area-inset-bottom,0px));
+    max-width:calc(100vw - 25px);padding:9px 14px;
+    font-size:9px;gap:10px
+  }
+  .data-warning {
+    left:50%;right:auto;bottom:calc(98px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%);max-width:calc(100vw - 22px);
+    text-align:center;white-space:normal;line-height:1.45;letter-spacing:.3px;
+    font-size:8px;color:#8699b8
+  }
+  .interaction-hint {display:none}
+  .detail-backdrop:not([hidden]) {
+    position:fixed;z-index:14;inset:0;display:block;width:100%;height:100%;
+    border:0;border-radius:0;pointer-events:auto;background:rgba(3,7,16,.6);
+    backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)
+  }
+  .detail-panel:not([hidden]) {
+    position:fixed;z-index:15;
+    left:calc(14px + env(safe-area-inset-left,0px));
+    right:calc(14px + env(safe-area-inset-right,0px));
+    bottom:calc(100px + env(safe-area-inset-bottom,0px));
+    width:auto;max-width:540px;
+    margin-inline:auto;padding:19px;
+    max-height:calc(100dvh - 132px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+    overflow:auto
+  }
+  .detail-body h2 {font-size:24px}
+  .details-grid {gap:13px 15px}
+  .details-grid dt,.details-grid dd {font-size:12px}
+  .detail-top button {min-width:44px;min-height:44px;font-size:26px}
+  .toast {
+    left:14px;right:14px;bottom:calc(103px + env(safe-area-inset-bottom,0px));
+    max-width:none;z-index:21
+  }
+  .webgl-fallback {top:43%;z-index:6}
+}
+@media (max-width:480px) {
+  .intro {top:calc(89px + env(safe-area-inset-top,0px));left:17px}
+  .intro h1 {font-size:clamp(26px,7.2vw,32px);margin:12px 0}
+  .intro p {font-size:11px;max-width:255px}
+  .intro .data-mode {padding:7px 9px;font-size:10px}
+  .objects-heading h2 {font-size:17px}
+  .objects-heading {padding:14px 13px 10px}
+  .control-inner {padding-inline:15px}
+  .control-panel summary {padding:13px 16px}
+  .list-legend {font-size:9px;gap:10px}
+  .object-name {font-size:12px}
+  .bottom-hud {gap:7px;bottom:calc(122px + env(safe-area-inset-bottom,0px))}
+  .bottom-hud span:last-child,.bottom-hud .hud-divider:last-of-type {display:none}
+  .status {max-width:125px;font-size:9px}
+  .logo-copy small {display:none}
+  .logo-icon {font-size:33px}
+  .logo-copy strong {font-size:16px}
+}
+@media (max-width:350px) {
+  .topbar {padding-inline:10px}
+  .logo-copy strong {font-size:14px}
+  .intro h1 {font-size:25px}
+  .intro p {max-width:245px}
+  .control-panel,.objects-panel {left:8px;right:8px}
+  .mobile-dock {left:8px;right:8px}
+  .mobile-dock button {gap:4px;font-size:9px}
+  .mobile-dock button span {font-size:19px}
+  .bottom-hud {font-size:8px}
+  .data-warning {font-size:7px}
+}
+@media (max-width:900px) and (orientation:landscape) and (max-height:560px) {
+  .topbar {min-height:59px;padding-top:8px;padding-bottom:8px}
+  .intro {top:75px;max-width:220px}
+  .intro h1 {font-size:22px}
+  .intro p {font-size:10px}
+  .intro .data-mode {font-size:8px}
+  .control-panel,.objects-panel {top:68px;bottom:77px}
+  .mobile-dock {bottom:5px;max-width:500px;padding:4px}
+  .mobile-dock button {min-height:43px}
+  .detail-panel:not([hidden]) {bottom:68px;max-height:calc(100dvh - 90px)}
+  .bottom-hud {bottom:85px;padding-block:6px}
+  .data-warning {display:none}
+  .toast {bottom:70px}
+}
+@media (min-width:901px) and (max-height:690px) {
+  .intro {top:98px}
+  .intro h1 {font-size:27px;margin:9px 0}
+  .intro p {font-size:11px;margin-bottom:8px}
+  .control-panel {top:260px;max-height:calc(100vh - 326px)}
+  .detail-panel {max-height:53vh}
+}

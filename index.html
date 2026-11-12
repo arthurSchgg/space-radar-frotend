@@ -17,7 +17,7 @@
   <script src="./js/radar.js" defer></script>
   <script src="./js/app.js" defer></script>
 </head>
-<body>
+<body data-mobile-view="radar">
   <a class="skip" href="#main">Pular para os controles</a>
   <div class="space">
     <canvas id="scene" aria-label="Cena 3D artística: a Terra está no centro, com asteroides ilustrativos ao redor. Arraste para girar e use a lista acessível para selecionar." role="img"></canvas>
@@ -68,6 +68,7 @@
           </select>
         </label>
         <button class="apply-button" type="button" id="applyFilters">APLICAR FILTROS <span aria-hidden="true">↗</span></button>
+        <button class="reset-camera" id="resetCamera" type="button">↺ &nbsp; CENTRALIZAR CÂMERA</button>
 
         <div class="control-separator"></div>
         <div class="slider-title"><label for="speed">MOVIMENTO ILUSTRATIVO</label><output id="speedValue" for="speed">1.0×</output></div>
@@ -99,7 +100,8 @@
       </div>
     </aside>
 
-    <section class="panel detail-panel" id="detailPanel" aria-labelledby="detailTitle" hidden>
+    <button id="detailBackdrop" class="detail-backdrop" type="button" aria-label="Fechar detalhes do objeto" hidden></button>
+    <section class="panel detail-panel" id="detailPanel" aria-labelledby="detailTitle" aria-live="polite" hidden>
       <div class="detail-top"><span><span class="panel-index">03 /</span> OBJECT ANALYSIS</span><button id="closeDetail" type="button" aria-label="Fechar detalhes">×</button></div>
       <div class="detail-body">
         <div class="object-type" id="detailRisk"></div>
@@ -110,6 +112,17 @@
       </div>
     </section>
 
+    <nav class="mobile-dock" aria-label="Navegação do radar">
+      <button type="button" data-view="radar" aria-pressed="true" aria-controls="scene">
+        <span aria-hidden="true">◎</span> RADAR
+      </button>
+      <button type="button" data-view="objects" aria-pressed="false" aria-controls="objectList">
+        <span aria-hidden="true">☷</span> OBJETOS
+      </button>
+      <button type="button" data-view="controls" aria-pressed="false" aria-controls="controls">
+        <span aria-hidden="true">⚙</span> FILTROS
+      </button>
+    </nav>
     <div class="bottom-hud">
       <span><i aria-hidden="true">◎</i> EARTH / REFERENCE POINT</span>
       <span class="hud-divider">|</span>

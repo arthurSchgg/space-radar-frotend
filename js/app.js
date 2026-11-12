@@ -15,6 +15,23 @@
     search: "", hazardousOnly: false
   };
   const preferLessMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const compactViewport = matchMedia("(max-width: 900px)");
+  let mobileView = "radar";
+
+  function setMobileView(view) {
+    if (!["radar", "objects", "controls"].includes(view)) view = "radar";
+    mobileView = view;
+    document.body.dataset.mobileView = view;
+    document.querySelectorAll(".mobile-dock button[data-view]").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.view === view));
+    });
+    if (compactViewport.matches) {
+      $("controls").open = view === "controls";
+    } else {
+      $("controls").open = state.selectedId == null;
+    }
+  }
+
 
   const pad = x => String(x).padStart(2, "0");
   const formatNumber = (value, maximumFractionDigits = 1) => {
@@ -147,8 +164,13 @@
   function updateDetails() {
     const panel = $("detailPanel");
     const obj = state.events.find(item => item.id === state.selectedId);
-    if (!obj) { panel.hidden = true; return; }
+    if (!obj) {
+      panel.hidden = true;
+      $("detailBackdrop").hidden = true;
+      return;
+    }
     panel.hidden = false;
+    $("detailBackdrop").hidden = !compactViewport.matches;
     $("detailRisk").textContent = obj.hazardous ?
       "POTENCIALMENTE PERIGOSO" : "OBJETO MONITORADO";
     $("detailRisk").className = "object-type" +
@@ -172,7 +194,7 @@
     const visible = currentVisible();
     if (id != null && !visible.some(item => item.id === id)) id = null;
     state.selectedId = id;
-    $("controls").open = id == null;
+    if (!compactViewport.matches) $("controls").open = id == null;
     if (state.detailsController) state.detailsController.abort();
     state.detailsController = null;
     if (radar.isReady()) radar.select(id);
@@ -202,6 +224,7 @@
         !visible.some(item => item.id === state.selectedId)) {
       state.selectedId = null;
       $("detailPanel").hidden = true;
+      $("detailBackdrop").hidden = true;
     }
     if (radar.isReady()) {
       radar.setObjects(visible);
@@ -239,7 +262,8 @@
       state.totalPages = result.events.totalPages;
       setStatus(mode.demo ? "Demonstração fictícia" : "API conectada",
         mode.demo ? "demo" : "api");
-      $("controls").open = matchMedia("(min-width:701px)").matches;
+      $("controls").open = compactViewport.matches ?
+        mobileView === "controls" : true;
     } catch (err) {
       if (task !== state.requestId) return;
       state.error = err.message || "Falha ao consultar os dados.";
@@ -277,14 +301,33 @@
   function setupUI() {
     initialDates();
     updateMode();
-    $("controls").open = matchMedia("(min-width:701px)").matches;
+    setMobileView("radar");
+    compactViewport.addEventListener("change", () => {
+      setMobileView("radar");
+      updateDetails();
+    });
+    document.querySelectorAll(".mobile-dock button[data-view]").forEach(button => {
+      button.addEventListener("click", () => {
+        if (state.selectedId != null) selectObject(null);
+        setMobileView(button.dataset.view);
+      });
+    });
+    $("detailBackdrop").addEventListener("click", () => selectObject(null));
+    $("resetCamera").addEventListener("click", () => {
+      radar.resetCamera();
+      if (compactViewport.matches) setMobileView("radar");
+    });
     $("allFilter").addEventListener("click", () => changeRisk(false));
     $("hazardFilter").addEventListener("click", () => changeRisk(true));
     $("applyFilters").addEventListener("click", () => {
       state.page = 0;
       load();
     });
-    $("search").addEventListener("input", () => renderEvents());
+    let searchDelay;
+    $("search").addEventListener("input", () => {
+      clearTimeout(searchDelay);
+      searchDelay = setTimeout(renderEvents, 110);
+    });
     $("demoButton").addEventListener("click", () => setMode(true));
     $("apiButton").addEventListener("click", () => setMode(false));
     $("prevPage").addEventListener("click", () => {
